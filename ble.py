@@ -10,16 +10,15 @@
     BLEとの通信を確立し、受信したデータをCSVファイルを新たに作成し保存する。
     ファイル名は自動生成し、最新のファイル名が「setting_plotter.txt」に保存される。
 '''
+import time, sys, threading, subprocess, datetime
 
 from adafruit_ble import BLERadio
 from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
 from adafruit_ble.services.nordic import UARTService
-import time
+
 import numpy as np
 import matplotlib.pyplot as plt
-import threading
-import subprocess
-import datetime
+
 from pathlib import Path
 from colorama import Fore, Back, Style
 
@@ -63,6 +62,8 @@ def run_script(script_name):
     subprocess.run(["python", script_name])
 
 script1_thread = None
+uart_thread, uartrelay_thread = None, None
+
 
 while True:
     if not uart_connection or not uart_relay_connection:
@@ -72,10 +73,10 @@ while True:
             if UARTService in adv.services:
                 if adv.complete_name == NAME_OLED and not uart_connection:
                     uart_connection = ble.connect(adv)
-                    print("Connected!" + NAME_OLED)
+                    print("Connected!" + NAME_OLED+"[RSSI="+str(adv.rssi)+"]")
                 elif adv.complete_name == NAME_RELAY and not uart_relay_connection:
                     uart_relay_connection = ble.connect(adv)
-                    print("Relay Connected!" + NAME_RELAY)
+                    print("Relay Connected!" + NAME_RELAY+"[RSSI="+str(adv.rssi)+"]")
                 else:
                     if not adv.complete_name in [NAME_RELAY,NAME_OLED]:
                         print("FOUND NORDIC UART SERVICE, but the name does not match."+NAME_RELAY+","+NAME_OLED+"<>["+adv.complete_name+"]")                    
@@ -114,7 +115,7 @@ while True:
         if not inputdata:
             return
         decoded = inputdata.decode("utf-8")
-        print("DATA="+decoded, end="")#¥nすでに含まれているため。end=""
+        #print("DATA="+decoded, end="")#¥nすでに含まれているため。end=""
         rawfile.write(decoded)
         rawfile.flush()
 
@@ -123,6 +124,8 @@ while True:
             now = datetime.datetime.now()
             csvfile.write(now.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]+","+decoded)
             csvfile.flush()
+        else:
+            print(f"{Fore.RED}FORMAT ERR:{decoded}{Style.RESET_ALL}")
 
     def check_connection_and_readline(waiting_uart, rawfile, csvfile, name):
         while waiting_uart and waiting_uart.connected:
@@ -132,26 +135,38 @@ while True:
         print(f"{Fore.RED}{name} disconnected{Style.RESET_ALL}")
 
 
-    uartrelay_thread,uartrelay_thread = None,None
-    if uart_connection:
+    if uart_connection and not uart_thread:
         uart_thread = threading.Thread(target=check_connection_and_readline, args=(uart_connection, rawsavedataf, csvf, NAME_OLED))
         uart_thread.start()
 
-    if uart_relay_connection:
+    if uart_relay_connection and not uartrelay_thread:
         uartrelay_thread = threading.Thread(target=check_connection_and_readline, args=(uart_relay_connection, rawsavedataf_relay, csvf_relay, NAME_RELAY))
         uartrelay_thread.start()
 
-    if uart_thread:
-        uart_thread.join()
-    if uartrelay_thread:
-        uartrelay_thread.join()
 
-    uart_connection = None
-    uart_relay_connection = None
-    uart_thread = None
-    uartrelay_thread = None
-    print(f"{Fore.RED}DISCONNECTED{Style.RESET_ALL}")
+    if uart_thread and uartrelay_thread:
+        #Both direct and relay connected.
+        while True:
+            if not uart_thread.is_alive():
+                uart_thread = None
+                uart_connection = None
+                print(f"{Fore.RED}Trying to reestablish direct connection.{Style.RESET_ALL}")
+                break
+            if not uartrelay_thread.is_alive():
+                uartrelay_thread = None
+                uart_relay_connection = None
+                print(f"{Fore.RED}Trying to reestablish relay connection.{Style.RESET_ALL}")
+                break
+            time.sleep(1)
 
+    elif uartrelay_thread and not uart_thread:
+        #If no direct connection
+        print(f"{Fore.RED}Trying to establish direct connection.{Style.RESET_ALL}")
+        continue
+    elif uart_thread and not uartrelay_thread:
+        #If no relay connection
+        print(f"{Fore.RED}Trying to establish relay connection.{Style.RESET_ALL}")
+        continue
 
 csvf.close()
 rawsavedata.close()

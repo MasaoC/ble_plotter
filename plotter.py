@@ -21,6 +21,8 @@ from datetime import datetime
 import random
 
 
+DRAW_INTERVAL = 100 #100=10Hz
+
 settingf = open("setting_plotter.txt", "r")
 csvfilename = settingf.readline().rstrip('\n')
 csvfilename_relay = settingf.readline().rstrip('\n')
@@ -85,6 +87,9 @@ def animate(frame):
 		#print(data_relay_time)
 
 	use_relay = False
+	if data_time is None and data_relay_time is not None:
+		use_relay = True
+
 	if data_time and data_relay_time:
 		date_format = '%Y-%m-%d %H:%M:%S.%f'
 		t = datetime.strptime(data_time, date_format)
@@ -105,19 +110,30 @@ def animate(frame):
 
 	if(len(x) < 6):
 		return
-	#last two datas
-	xval = x[-1:].astype(float)
-	yval = y[-1:].astype(float)
-	#-5 to -1 datas
-	xval_o = x[-5:].astype(float)
-	yval_o = y[-5:].astype(float)
 
-	#trim
-	xval_t = xt[-1:].astype(float)
-	yval_t = yt[-1:].astype(float)
+	try:
+		#last two datas
+		xval = x[-1:].astype(float)
+		yval = y[-1:].astype(float)
+
+		#-5 to -1 datas
+		xval_o = x[-5:].astype(float)
+		yval_o = y[-5:].astype(float)
+
+		#trim
+		xval_t = xt[-1:].astype(float)
+		yval_t = yt[-1:].astype(float)
 
 
-	spdval = float(spd.iloc[-1])
+		spdval = float(spd.iloc[-1])
+	except ValueError as e:
+		print(usingdata[-1:])
+		print ('Value Error')
+		return
+	
+	#print(usingdata[-1:])
+	
+
 	if(spdval > maxspdval):
 		maxspdval = spdval
 	#print (xval,yval,xval_o,yval_o)
@@ -137,5 +153,5 @@ def animate(frame):
 	return ln,ln2,ln3,barcollection[0],barcollection[1]
 
 
-ani = FuncAnimation(plt.gcf(), animate, init_func=init, interval=66, cache_frame_data=False, blit=False)
+ani = FuncAnimation(plt.gcf(), animate, init_func=init, interval=DRAW_INTERVAL, cache_frame_data=False, blit=False)
 plt.show()

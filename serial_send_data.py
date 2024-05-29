@@ -1,5 +1,7 @@
 #開発テスト用ファイル
 #PC/MAC から、OLEDにシリアルを送信するためのファイル。
+#requires pyserial
+
 
 import math
 import serial
