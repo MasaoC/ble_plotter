@@ -22,23 +22,26 @@ import random
 
 
 settingf = open("setting_plotter.txt", "r")
-csvfilename = settingf.readline()
+csvfilename = settingf.readline().rstrip('\n')
+csvfilename_relay = settingf.readline().rstrip('\n')
+
 graph_title = csvfilename.replace(".csv", "").replace("csv","")
+
 print(csvfilename)
 
+# ツールバー非表示
 matplotlib.rcParams['toolbar'] = 'None'
 
-# グラフを表示する領域を，figオブジェクトとして作成．
+# グラフ表示領域を2つ生成し、6:1の表示領域（エルロンピッチ:風速）とする。
 fig, (ax1,ax2) = plt.subplots(1, 2, figsize=(5,4), facecolor='lightblue',gridspec_kw={'width_ratios': [6, 1]})
 
-
-
-
+# 最大対気速度を記録する変数
 maxspdval = 0
+
+# 風速表示
 barcollection = ax2.bar([0,1],[0,maxspdval],width=[1,0.3], color=["blue","aqua"])
 
-
-# Animation requirements.
+# 線や点の設定
 ln, = ax1.plot([], [], color='blue', marker='o',linewidth=1 ,markersize=7, alpha=1)
 ln2, = ax1.plot([], [], color='blue', marker='o',linewidth=1 ,markersize=2, alpha=0.5)
 ln3, = ax1.plot([], [], color='red', marker='o',linewidth=1 ,markersize=5, alpha=0.5)
@@ -70,16 +73,34 @@ def animate(frame):
 	timebegin = datetime.now()
 	data = pd.read_csv("./csv/"+csvfilename)
 	data.apply(pd.to_numeric, errors='coerce')
+	data_relay = pd.read_csv("./csv/"+csvfilename_relay)
+	data_relay.apply(pd.to_numeric, errors='coerce')
 
+	data_time,data_relay_time = None, None
+	if len(data['time']) > 6:
+		data_time = data['time'].iloc[-1]
+		#print(data_time)
+	if len(data_relay['time']) > 6:
+		data_relay_time = data_relay['time'].iloc[-1]
+		#print(data_relay_time)
 
-	x = data['rudder']
-	y = data['elevator']
-	xt = data['rudder_trim']
-	yt = data['elevator_trim']
-	spd = data['airspeed']
+	use_relay = False
+	if data_time and data_relay_time:
+		date_format = '%Y-%m-%d %H:%M:%S.%f'
+		t = datetime.strptime(data_time, date_format)
+		t_r = datetime.strptime(data_relay_time, date_format)
+		if t_r > t:
+			use_relay = True
+	usingdata = data_relay if use_relay else data
+
+	x = usingdata['rudder'] 
+	y = usingdata['elevator']
+	xt = usingdata['rudder_trim']
+	yt = usingdata['elevator_trim']
+	spd = usingdata['airspeed']
 
 	
-	timestr = time.strftime("%H:%M:%S(")+str(len(x))+")"
+	timestr = time.strftime("%H:%M:%S(")+str(len(x))+")["+("Relay" if use_relay else "Direct")+"]"
 	ax2.set_title(timestr, y=1.05, fontsize=9)
 
 	if(len(x) < 6):

@@ -6,7 +6,7 @@
     Date last modified: 2024/5/28
     Python Version: 3.10.0 (tested on)
 
-    メインの BLE 受信、グラフ起動ファイル。
+    メインの BLE 受信ファイル。グラフ起動(plotter.py実行)も行う。
     BLEとの通信を確立し、受信したデータをCSVファイルを新たに作成し保存する。
     ファイル名は自動生成し、最新のファイル名が「setting_plotter.txt」に保存される。
 '''
@@ -20,74 +20,141 @@ import matplotlib.pyplot as plt
 import threading
 import subprocess
 import datetime
+from pathlib import Path
+from colorama import Fore, Back, Style
 
 
+RAWDATAPATH = "./csv/raw.csv"
+RAWDATAPATH_RELAY = "./csv/raw_relay.csv"
+NAME_OLED = "ALBA TAIYO OLED v2"
+NAME_RELAY = "BLE RELAY"
+
+Path("./csv/").mkdir(parents=True, exist_ok=True)
+#Creating new save file.
 timestr = time.strftime("csv%Y%m%d-%H%M")
 csvf = open("./csv/"+timestr+".csv", "w")
 csvf.write("time,airspeed,rudder,rudder_trim,elevator,elevator_trim\n")
 csvf.flush()
+#Creating new relay save file.
+csvf_relay = open("./csv/"+timestr+"_relay.csv", "w")
+csvf_relay.write("time,airspeed,rudder,rudder_trim,elevator,elevator_trim\n")
+csvf_relay.flush()
+
+#Creating appending rawdata save file.
+rawsavedataf = open(RAWDATAPATH, "a")
+rawsavedataf_relay = open(RAWDATAPATH_RELAY, "a")
 
 
-rawsavedata = open("./csv/raw.csv", "a")
+print("[INIT. PROCESS] This ble.py will connect to ble-oled "+NAME_OLED+".")
+print("Saves csv file to [./csv/" + timestr + ".csv]. and [./csv/"+timestr+"_relay.csv]")
 
-NAME_OLED = "ALBA TAIYO OLED v2"
+settingf = open("setting_plotter.txt", "w")
+settingf.write(timestr+".csv\n")
+settingf.write(timestr+"_relay.csv\n")
+settingf.close()
+print("settings file(setting_plotter.txt) has been changed.")
 
 
 ble = BLERadio()
-
-uart_connection = None
-
-
-print("This ble.py will connect to ble-oled "+NAME_OLED+"and saves csv file to [./csv/" + timestr + ".csv]. and settings file(setting_plotter.txt) have been changed.")
-
-settingf = open("setting_plotter.txt", "w")
-settingf.write(timestr+".csv")
-settingf.close()
+uart_connection,uart_relay_connection = None,None
 
 #マルチスレッド。プロッター表示。
 def run_script(script_name):
     subprocess.run(["python", script_name])
 
-script1_thread = threading.Thread(target=run_script, args=("plotter.py",))
-script1_thread.start()
-
+script1_thread = None
 
 while True:
-    if not uart_connection:
+    if not uart_connection or not uart_relay_connection:
         print("Trying to connect...")
+        connect_begin_time = datetime.datetime.now()
         for adv in ble.start_scan(ProvideServicesAdvertisement):
-            print(adv.complete_name)
-            if UARTService in adv.services and adv.complete_name == NAME_OLED:
-                uart_connection = ble.connect(adv)
-                print("Connected!" + NAME_OLED)
+            if UARTService in adv.services:
+                if adv.complete_name == NAME_OLED and not uart_connection:
+                    uart_connection = ble.connect(adv)
+                    print("Connected!" + NAME_OLED)
+                elif adv.complete_name == NAME_RELAY and not uart_relay_connection:
+                    uart_relay_connection = ble.connect(adv)
+                    print("Relay Connected!" + NAME_RELAY)
+                else:
+                    if not adv.complete_name in [NAME_RELAY,NAME_OLED]:
+                        print("FOUND NORDIC UART SERVICE, but the name does not match."+NAME_RELAY+","+NAME_OLED+"<>["+adv.complete_name+"]")                    
+            else:
+                if adv.complete_name:
+                    print("NOT UART:" + adv.complete_name)
+                else:
+                    print("NOT UART:.")
+            #リレーおよび本体が見つかった
+            if uart_connection and uart_relay_connection:
+                print(f"{Fore.GREEN}{Back.BLACK}BLE AND RELAY, BOTH CONNECTED!{Style.RESET_ALL}")
                 break
+
+            time_elapsed = (datetime.datetime.now() - connect_begin_time).total_seconds() 
+
+            if time_elapsed > 10 and not uart_relay_connection and uart_connection:
+                print(f"{Fore.RED}No relay found!! continue...{Style.RESET_ALL}")
+                break
+            elif time_elapsed > 15 and not uart_connection and uart_relay_connection:
+                print(f"{Fore.RED}Only the relay connected!! continue...{Style.RESET_ALL}")
+                break
+            elif time_elapsed > 20:
+                print(f"{Fore.RED}No device found, but continue scan...{Style.RESET_ALL}")
+                connect_begin_time = datetime.datetime.now()
+            
         ble.stop_scan()
 
+    #Creating plotter window.
+    if not script1_thread:
+        script1_thread = threading.Thread(target=run_script, args=("plotter.py",))
+        script1_thread.start()
 
 
-    if uart_connection and uart_connection.connected:
-        uart_service = uart_connection[UARTService]
-        print(uart_service)
-        while uart_connection.connected:
-            getinput = uart_service.readline()
-            if getinput == None or len(getinput) == 0:
-                print("no signal....")
-                time.sleep(1)
-                continue
+    #どちらかがつながっている間実行
+    def print_write_this_to(inputdata, rawfile, csvfile):
+        if not inputdata:
+            return
+        decoded = inputdata.decode("utf-8")
+        print("DATA="+decoded, end="")#¥nすでに含まれているため。end=""
+        rawfile.write(decoded)
+        rawfile.flush()
 
-            print("DATA="+getinput.decode("utf-8"), end="")#¥nすでに含まれているため。end=""
-            inputvalues = getinput.decode("utf-8").split(",")
+        inputvalues = decoded.split(",")
+        if len(inputvalues) == 5:
+            now = datetime.datetime.now()
+            csvfile.write(now.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]+","+decoded)
+            csvfile.flush()
 
-            rawsavedata.write(getinput.decode("utf-8"))
-            rawsavedata.flush()
-            #正しくsplitできた時のみCSV保存実行
-            if len(inputvalues) == 5:
-                now = datetime.datetime.now()
-                csvf.write(now.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]+","+getinput.decode("utf-8"))
-                csvf.flush()
+    def check_connection_and_readline(waiting_uart, rawfile, csvfile, name):
+        while waiting_uart and waiting_uart.connected:
+            getinput = waiting_uart[UARTService].readline()
+            print_write_this_to(getinput, rawfile, csvfile)
+
+        print(f"{Fore.RED}{name} disconnected{Style.RESET_ALL}")
+
+
+    uartrelay_thread,uartrelay_thread = None,None
+    if uart_connection:
+        uart_thread = threading.Thread(target=check_connection_and_readline, args=(uart_connection, rawsavedataf, csvf, NAME_OLED))
+        uart_thread.start()
+
+    if uart_relay_connection:
+        uartrelay_thread = threading.Thread(target=check_connection_and_readline, args=(uart_relay_connection, rawsavedataf_relay, csvf_relay, NAME_RELAY))
+        uartrelay_thread.start()
+
+    if uart_thread:
+        uart_thread.join()
+    if uartrelay_thread:
+        uartrelay_thread.join()
+
+    uart_connection = None
+    uart_relay_connection = None
+    uart_thread = None
+    uartrelay_thread = None
+    print(f"{Fore.RED}DISCONNECTED{Style.RESET_ALL}")
 
 
 csvf.close()
+rawsavedata.close()
 
 
 
