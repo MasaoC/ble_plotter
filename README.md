@@ -29,7 +29,7 @@
   NAME_OLED = "ALBA TAIYO OLED v2"
   NAME_RELAY = "BLE RELAY"
   ```
-- BLE送信機には、ESP32C3 XIAOを２つ使用した。
+- BLE送信機には、ESP32C3 XIAOを２つ使用した。 [送信機のArduinoプログラム](https://github.com/MasaoC/uart2ble_oled)
 - serial_send_data.py や、sim_writecsv.py は開発用途なので普段は使用しない。
 - 試験飛行における画面の録画は複数画面を録画できる OBS Studio を推奨。EOS Webcam Utilityと組み合わせることで、フライト映像と合成録画が可能。
 - 要改善：毎ループ csv open して全データ読み込みしてしまっている。今の所、処理速度に影響ないので放置中。
