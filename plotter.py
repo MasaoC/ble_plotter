@@ -35,13 +35,13 @@ print(csvfilename)
 matplotlib.rcParams['toolbar'] = 'None'
 
 # グラフ表示領域を2つ生成し、6:1の表示領域（エルロンピッチ:風速）とする。
-fig, (ax1,ax2) = plt.subplots(1, 2, figsize=(5,4), facecolor='lightblue',gridspec_kw={'width_ratios': [6, 1]})
+fig, (ax1,ax2) = plt.subplots(2, 1, figsize=(4,5), facecolor='lightblue',gridspec_kw={'height_ratios': [6, 1]})
 
 # 最大対気速度を記録する変数
 maxspdval = 0
 
 # 風速表示
-barcollection = ax2.bar([0,1],[0,maxspdval],width=[1,0.3], color=["blue","aqua"])
+barcollection = ax2.barh([0,1],[0,maxspdval],height=[1,0.3], color=["blue","aqua"])
 
 # 線や点の設定
 ln, = ax1.plot([], [], color='blue', marker='o',linewidth=1 ,markersize=7, alpha=1)
@@ -58,11 +58,12 @@ def init():
 	ax1.set_xlim(-16,16)
 	ax1.set_ylim(-6,6)
 	ax1.set_title(graph_title)
-	ax2.grid(axis = 'y')
-	ax2.set_ylim(0,10)
+	ax2.grid(axis = 'x')
+	ax2.set_xlim(0,10)
+	ax2.invert_yaxis()
 	#ax2.xaxis.set_visible(False)
-	ax2.set_xticks([0,1], labels=["SPD","Max"])
-	ax2.set_yticks(range(11))
+	ax2.set_yticks([0,1], labels=["SPD","Max"])
+	ax2.set_xticks(range(11))
 
 	return ln,
 
@@ -105,8 +106,10 @@ def animate(frame):
 	spd = usingdata['airspeed']
 
 	
-	timestr = time.strftime("%H:%M:%S(")+str(len(x))+")["+("Relay" if use_relay else "Direct")+"]"
-	ax2.set_title(timestr, y=1.05, fontsize=9)
+	timestr = time.strftime("%H:%M:%S(")+str(len(x))+")"
+	modestr = "["+("Relay" if use_relay else "Direct")+"]"
+	ax2.set_title(timestr,  fontsize=9)
+	ax2.set_title(modestr, loc='right', fontsize=9)
 
 	if(len(x) < 6):
 		return
@@ -144,12 +147,15 @@ def animate(frame):
 	for i, b in enumerate(barcollection):
 		#print(i,spdval,maxspdval)
 		if i == 0:
-			b.set_height(spdval)
+			b.set_width(spdval)
 		elif i == 1:
-			b.set_height(maxspdval)
+			b.set_width(maxspdval)
 
 	duration_in_s = (datetime.now()-timebegin).total_seconds() 
 	print(" "+str(frame)+": {:.1f}ms".format(duration_in_s*1000),end="\r")
+	
+	plt.tight_layout()
+
 	return ln,ln2,ln3,barcollection[0],barcollection[1]
 
 

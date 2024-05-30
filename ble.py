@@ -16,13 +16,13 @@ from adafruit_ble import BLERadio
 from adafruit_ble.advertising.standard import ProvideServicesAdvertisement
 from adafruit_ble.services.nordic import UARTService
 
-import numpy as np
 import matplotlib.pyplot as plt
 
 from pathlib import Path
 from colorama import Fore, Back, Style
 
 
+SETTING_FILE = "setting_plotter.txt"
 RAWDATAPATH = "./csv/raw.csv"
 RAWDATAPATH_RELAY = "./csv/raw_relay.csv"
 NAME_OLED = "ALBA TAIYO OLED v2"
@@ -47,7 +47,7 @@ rawsavedataf_relay = open(RAWDATAPATH_RELAY, "a")
 print("[INIT. PROCESS] This ble.py will connect to ble-oled "+NAME_OLED+".")
 print("Saves csv file to [./csv/" + timestr + ".csv]. and [./csv/"+timestr+"_relay.csv]")
 
-settingf = open("setting_plotter.txt", "w")
+settingf = open(SETTING_FILE, "w")
 settingf.write(timestr+".csv\n")
 settingf.write(timestr+"_relay.csv\n")
 settingf.close()
@@ -87,7 +87,7 @@ while True:
                     print("NOT UART:.")
             #リレーおよび本体が見つかった
             if uart_connection and uart_relay_connection:
-                print(f"{Fore.GREEN}{Back.BLACK}BLE AND RELAY, BOTH CONNECTED!{Style.RESET_ALL}")
+                print(f"{Fore.GREEN}{Back.BLACK}BOTH DIRECT AND RELAY, BLE CONNECTED!{Style.RESET_ALL}")
                 break
 
             time_elapsed = (datetime.datetime.now() - connect_begin_time).total_seconds() 
@@ -99,7 +99,7 @@ while True:
                 print(f"{Fore.RED}Only the relay connected!! continue...{Style.RESET_ALL}")
                 break
             elif time_elapsed > 20:
-                print(f"{Fore.RED}No device found, but continue scan...{Style.RESET_ALL}")
+                print(f"{Fore.RED}No device found, continue scan...{Style.RESET_ALL}")
                 connect_begin_time = datetime.datetime.now()
             
         ble.stop_scan()
@@ -144,22 +144,8 @@ while True:
         uartrelay_thread.start()
 
 
-    if uart_thread and uartrelay_thread:
-        #Both direct and relay connected.
-        while True:
-            if not uart_thread.is_alive():
-                uart_thread = None
-                uart_connection = None
-                print(f"{Fore.RED}Trying to reestablish direct connection.{Style.RESET_ALL}")
-                break
-            if not uartrelay_thread.is_alive():
-                uartrelay_thread = None
-                uart_relay_connection = None
-                print(f"{Fore.RED}Trying to reestablish relay connection.{Style.RESET_ALL}")
-                break
-            time.sleep(1)
 
-    elif uartrelay_thread and not uart_thread:
+    if uartrelay_thread and not uart_thread:
         #If no direct connection
         print(f"{Fore.RED}Trying to establish direct connection.{Style.RESET_ALL}")
         continue
@@ -168,6 +154,21 @@ while True:
         print(f"{Fore.RED}Trying to establish relay connection.{Style.RESET_ALL}")
         continue
 
+
+    while True:
+        if uart_thread and not uart_thread.is_alive():
+            uart_thread = None
+            uart_connection = None
+            print(f"{Fore.RED}Trying to reestablish direct connection.{Style.RESET_ALL}")
+            break
+        if uartrelay_thread and not uartrelay_thread.is_alive():
+            uartrelay_thread = None
+            uart_relay_connection = None
+            print(f"{Fore.RED}Trying to reestablish relay connection.{Style.RESET_ALL}")
+            break
+        time.sleep(1)
+
+        
 csvf.close()
 rawsavedata.close()
 
