@@ -48,6 +48,7 @@ ln, = ax1.plot([], [], color='blue', marker='o',linewidth=1 ,markersize=7, alpha
 ln2, = ax1.plot([], [], color='blue', marker='o',linewidth=1 ,markersize=2, alpha=0.5)
 ln3, = ax1.plot([], [], color='red', marker='o',linewidth=1 ,markersize=5, alpha=0.5)
 
+
 #color='blue', marker='o',markersize=10, linewidth=0)
 def init():
 	ax1.set_xlabel("LEFT   <-   ->   RIGHT")
@@ -58,12 +59,14 @@ def init():
 	ax1.set_xlim(-16,16)
 	ax1.set_ylim(-6,6)
 	ax1.set_title(graph_title)
+
 	ax2.grid(axis = 'x')
 	ax2.set_xlim(0,10)
 	ax2.invert_yaxis()
 	#ax2.xaxis.set_visible(False)
 	ax2.set_yticks([0,1], labels=["SPD","Max"])
 	ax2.set_xticks(range(11))
+	plt.tight_layout()
 
 	return ln,
 
@@ -80,23 +83,32 @@ def animate(frame):
 	data_relay.apply(pd.to_numeric, errors='coerce')
 
 	data_time,data_relay_time = None, None
-	if len(data['time']) > 6:
-		data_time = data['time'].iloc[-1]
-		#print(data_time)
-	if len(data_relay['time']) > 6:
-		data_relay_time = data_relay['time'].iloc[-1]
-		#print(data_relay_time)
-
+	direct_online, relay_online = False, False
 	use_relay = False
-	if data_time is None and data_relay_time is not None:
-		use_relay = True
 
-	if data_time and data_relay_time:
-		date_format = '%Y-%m-%d %H:%M:%S.%f'
-		t = datetime.strptime(data_time, date_format)
-		t_r = datetime.strptime(data_relay_time, date_format)
-		if t_r > t:
+	#軌跡の表示のため、データが６個以上集まっていれば有効とみなす。3秒以内受信かつ５個データが2秒以内が必須(2.5Hz)
+	if len(data['time']) > 6:
+		data_time = datetime.strptime(data['time'].iloc[-1],'%Y-%m-%d %H:%M:%S.%f')
+		data_time_5 = datetime.strptime(data['time'].iloc[-5],'%Y-%m-%d %H:%M:%S.%f')
+		direct_online = (datetime.now()-data_time).total_seconds() < 3 and (data_time - data_time_5).total_seconds() < 2
+	if len(data_relay['time']) > 6:
+		data_relay_time = datetime.strptime(data_relay['time'].iloc[-1],'%Y-%m-%d %H:%M:%S.%f')
+		data_relay_time_5 = datetime.strptime(data_relay['time'].iloc[-5],'%Y-%m-%d %H:%M:%S.%f')
+		relay_online = (datetime.now()-data_relay_time).total_seconds() < 3 and (data_relay_time - data_relay_time_5).total_seconds() < 2
+
+	mode_text = "-"
+	if not direct_online and not relay_online:
+		mode_text = "OFFLINE"
+	elif not direct_online and relay_online:
+		use_relay = True
+		mode_text = "RELAY"
+	elif direct_online and not relay_online:
+		mode_text = "DIRECT"
+	elif direct_online and relay_online:
+		if data_relay_time > data_time:
 			use_relay = True
+		mode_text = "RELAY&DIRECT ONLINE"
+
 	usingdata = data_relay if use_relay else data
 
 	x = usingdata['rudder'] 
@@ -106,11 +118,14 @@ def animate(frame):
 	spd = usingdata['airspeed']
 
 	
-	timestr = time.strftime("%H:%M:%S(")+str(len(x))+")"
-	modestr = "["+("Relay" if use_relay else "Direct")+"]"
-	ax2.set_title(timestr,  fontsize=9)
-	ax2.set_title(modestr, loc='right', fontsize=9)
+	timestr = time.strftime("%H:%M:%S")
+	ax1.set_title(timestr, loc='right', fontsize=9)
 
+	ax2title = "csv size "+str(len(x))+ ("r" if use_relay else "d")
+	ax2.set_title(ax2title, loc='left',  fontsize=7)
+	ax2.set_title(mode_text, loc='right', fontsize=9)
+
+	#念の為
 	if(len(x) < 6):
 		return
 
@@ -118,28 +133,23 @@ def animate(frame):
 		#last two datas
 		xval = x[-1:].astype(float)
 		yval = y[-1:].astype(float)
-
 		#-5 to -1 datas
 		xval_o = x[-5:].astype(float)
 		yval_o = y[-5:].astype(float)
-
 		#trim
 		xval_t = xt[-1:].astype(float)
 		yval_t = yt[-1:].astype(float)
-
-
 		spdval = float(spd.iloc[-1])
 	except ValueError as e:
+		#たまに壊れたデータがここまできてしまうので、ここでExceptする。
 		print(usingdata[-1:])
 		print ('Value Error')
 		return
 	
-	#print(usingdata[-1:])
-	
-
+	# max spd 更新
 	if(spdval > maxspdval):
 		maxspdval = spdval
-	#print (xval,yval,xval_o,yval_o)
+
 	ln.set_data(xval, yval)
 	ln2.set_data(xval_o, yval_o)
 	ln3.set_data(xval_t, yval_t)
@@ -154,7 +164,7 @@ def animate(frame):
 	duration_in_s = (datetime.now()-timebegin).total_seconds() 
 	print(" "+str(frame)+": {:.1f}ms".format(duration_in_s*1000),end="\r")
 	
-	plt.tight_layout()
+	#plt.tight_layout()
 
 	return ln,ln2,ln3,barcollection[0],barcollection[1]
 
