@@ -73,10 +73,12 @@ while True:
             if UARTService in adv.services:
                 if adv.complete_name == NAME_OLED and not uart_connection:
                     uart_connection = ble.connect(adv)
-                    print("Connected!" + NAME_OLED+"[RSSI="+str(adv.rssi)+"]")
+                    print(f"{Fore.GREEN}{Back.BLACK}Connected!{NAME_OLED}[RSSI={str(adv.rssi)}]{Style.RESET_ALL}")
+                    break
                 elif adv.complete_name == NAME_RELAY and not uart_relay_connection:
                     uart_relay_connection = ble.connect(adv)
-                    print("Relay Connected!" + NAME_RELAY+"[RSSI="+str(adv.rssi)+"]")
+                    print(f"{Fore.GREEN}{Back.BLACK}Connected!{NAME_RELAY}[RSSI={str(adv.rssi)}]{Style.RESET_ALL}")
+                    break
                 else:
                     if not adv.complete_name in [NAME_RELAY,NAME_OLED]:
                         print("FOUND NORDIC UART SERVICE, but the name does not match."+NAME_RELAY+","+NAME_OLED+"<>["+adv.complete_name+"]")                    
@@ -85,22 +87,7 @@ while True:
                     print("NOT UART:" + adv.complete_name)
                 else:
                     print("NOT UART:.")
-            #リレーおよび本体が見つかった
-            if uart_connection and uart_relay_connection:
-                print(f"{Fore.GREEN}{Back.BLACK}BOTH DIRECT AND RELAY, BLE CONNECTED!{Style.RESET_ALL}")
-                break
-
-            time_elapsed = (datetime.datetime.now() - connect_begin_time).total_seconds() 
-
-            if time_elapsed > 10 and not uart_relay_connection and uart_connection:
-                print(f"{Fore.RED}No relay found!! continue...{Style.RESET_ALL}")
-                break
-            elif time_elapsed > 15 and not uart_connection and uart_relay_connection:
-                print(f"{Fore.RED}Only the relay connected!! continue...{Style.RESET_ALL}")
-                break
-            elif time_elapsed > 20:
-                print(f"{Fore.RED}No device found, continue scan...{Style.RESET_ALL}")
-                connect_begin_time = datetime.datetime.now()
+            
             
         ble.stop_scan()
 
@@ -143,30 +130,29 @@ while True:
         uartrelay_thread = threading.Thread(target=check_connection_and_readline, args=(uart_relay_connection, rawsavedataf_relay, csvf_relay, NAME_RELAY))
         uartrelay_thread.start()
 
-
-
-    if uartrelay_thread and not uart_thread:
+    # そもそも繋がっていない場合
+    if uart_relay_connection and not uart_connection:
         #If no direct connection
         print(f"{Fore.RED}Trying to establish direct connection.{Style.RESET_ALL}")
-        continue
-    elif uart_thread and not uartrelay_thread:
+    if uart_connection and not uart_relay_connection:
         #If no relay connection
         print(f"{Fore.RED}Trying to establish relay connection.{Style.RESET_ALL}")
-        continue
+    
+
+    # Direct側のThread 終了
+    if uart_thread and not uart_thread.is_alive():
+        uart_thread = None
+        uart_connection = None
+        print(f"{Fore.RED}Trying to reestablish direct connection.{Style.RESET_ALL}")
+    
+    # Relay側のThread 終了
+    if uartrelay_thread and not uartrelay_thread.is_alive():
+        uartrelay_thread = None
+        uart_relay_connection = None
+        print(f"{Fore.RED}Trying to reestablish relay connection.{Style.RESET_ALL}")
 
 
-    while True:
-        if uart_thread and not uart_thread.is_alive():
-            uart_thread = None
-            uart_connection = None
-            print(f"{Fore.RED}Trying to reestablish direct connection.{Style.RESET_ALL}")
-            break
-        if uartrelay_thread and not uartrelay_thread.is_alive():
-            uartrelay_thread = None
-            uart_relay_connection = None
-            print(f"{Fore.RED}Trying to reestablish relay connection.{Style.RESET_ALL}")
-            break
-        time.sleep(1)
+    time.sleep(1)
 
         
 csvf.close()

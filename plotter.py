@@ -11,7 +11,6 @@
 	最新のCSVファイル名は「setting_plotter.txt」から読み込む。
 '''
 
-import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -96,18 +95,17 @@ def animate(frame):
 		data_relay_time_5 = datetime.strptime(data_relay['time'].iloc[-5],'%Y-%m-%d %H:%M:%S.%f')
 		relay_online = (datetime.now()-data_relay_time).total_seconds() < 3 and (data_relay_time - data_relay_time_5).total_seconds() < 2
 
-	mode_text = "-"
 	if not direct_online and not relay_online:
-		mode_text = "OFFLINE"
+		ax2.set_title("OFFLINE", loc='right', fontsize=9, color='red')
 	elif not direct_online and relay_online:
 		use_relay = True
-		mode_text = "RELAY"
+		ax2.set_title("RELAY", loc='right', fontsize=9, color='green')
 	elif direct_online and not relay_online:
-		mode_text = "DIRECT"
+		ax2.set_title("DIRECT", loc='right', fontsize=9, color='blue')
 	elif direct_online and relay_online:
 		if data_relay_time > data_time:
 			use_relay = True
-		mode_text = "RELAY&DIRECT ONLINE"
+		ax2.set_title("RELAY&DIRECT ONLINE", loc='right', fontsize=9, color='green')
 
 	usingdata = data_relay if use_relay else data
 
@@ -121,13 +119,9 @@ def animate(frame):
 	timestr = time.strftime("%H:%M:%S")
 	ax1.set_title(timestr, loc='right', fontsize=9)
 
-	ax2title = "csv size "+str(len(x))+ ("r" if use_relay else "d")
+	ax2title = "csv"+str(len(x))+ ("r" if use_relay else "d")
 	ax2.set_title(ax2title, loc='left',  fontsize=7)
-	ax2.set_title(mode_text, loc='right', fontsize=9)
 
-	#念の為
-	if(len(x) < 6):
-		return
 
 	try:
 		#last two datas

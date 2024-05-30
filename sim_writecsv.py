@@ -6,12 +6,12 @@ import math
 import datetime
 
 settingf = open("setting_plotter.txt", "r")
-csvfilename = settingf.readline()
-print(csvfilename)
-
-
+csvfilename = settingf.readline().rstrip('\n')
+csvfilename_relay = settingf.readline().rstrip('\n')
+print(csvfilename, csvfilename_relay)
 
 csvf = open("./csv/"+csvfilename, "a")
+csvf_relay = open("./csv/"+csvfilename_relay, "a")
 
 for x in range(5000):
 	now = datetime.datetime.now()
@@ -24,7 +24,12 @@ for x in range(5000):
 	#time,airspeed,rudder,rudder_trim,elevator,elevator_trim\n")
 	texttosave = timestamp+",{:.2f}".format(airspeed)+","+"{:.2f}".format(rudder+ruddertrim)+","+"{:.2f}".format(ruddertrim)+","+"{:.2f}".format(elevator+elevatortrim)+","+"{:.2f}".format(elevatortrim)+"\n"
 
-	csvf.write(texttosave)
-	csvf.flush()
+	if (x/50)%3 < 1:
+		csvf.write(texttosave)
+		csvf.flush()
+	elif (x/50)%3 < 2:
+		csvf_relay.write(texttosave)
+		csvf_relay.flush()
+
 	time.sleep(0.1);
 csvf.close()
