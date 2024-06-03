@@ -32,11 +32,12 @@ Path("./csv/").mkdir(parents=True, exist_ok=True)
 #Creating new save file.
 timestr = time.strftime("csv%Y%m%d-%H%M")
 csvf = open("./csv/"+timestr+".csv", "w")
-csvf.write("time,airspeed,rudder,rudder_trim,elevator,elevator_trim\n")
+orderdata = "time,airspeed,elevator,elevator_trim,rudder,rudder_trim\n"
+csvf.write(orderdata)
 csvf.flush()
 #Creating new relay save file.
 csvf_relay = open("./csv/"+timestr+"_relay.csv", "w")
-csvf_relay.write("time,airspeed,rudder,rudder_trim,elevator,elevator_trim\n")
+csvf_relay.write(orderdata)
 csvf_relay.flush()
 
 #Creating appending rawdata save file.

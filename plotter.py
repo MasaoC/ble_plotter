@@ -56,7 +56,7 @@ def init():
 	ax1.plot([0,0],[-20,20],c='black')
 	ax1.grid()
 	ax1.set_xlim(-16,16)
-	ax1.set_ylim(-6,6)
+	ax1.set_ylim(-8,8)
 	ax1.set_title(graph_title)
 
 	ax2.grid(axis = 'x')
@@ -109,10 +109,13 @@ def animate(frame):
 
 	usingdata = data_relay if use_relay else data
 
+	if len(usingdata['rudder']) < 6:
+		return
+
 	x = usingdata['rudder'] 
-	y = usingdata['elevator']
+	y = -usingdata['elevator']
 	xt = usingdata['rudder_trim']
-	yt = usingdata['elevator_trim']
+	yt = -usingdata['elevator_trim']
 	spd = usingdata['airspeed']
 
 	
