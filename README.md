@@ -3,6 +3,9 @@
 人力飛行機（ダイダロス機）の試験飛行において、機体から送られたデータをリアルタイムにグラフ表示する。
 データはBLEで送信され、受信されたデータはCSV保存も行う。Macの標準のBluetoothで受信することができる。
 
+![無線ロガー電装システム図](https://github.com/MasaoC/ble_plotter/assets/6983713/99f55044-6ccb-4f4f-a903-ae3f5c878cd6)
+
+
 ## 機能
 - ble.py
     - BLE(Nordic UART)を受信する。BLE受信は、UART [NUS (Nordic UART Service) ] を通して行われる。
