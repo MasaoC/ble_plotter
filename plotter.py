@@ -58,6 +58,7 @@ def init():
 	ax1.set_xlim(-16,16)
 	ax1.set_ylim(-8,8)
 	ax1.set_title(graph_title)
+	ax1.invert_yaxis()
 
 	ax2.grid(axis = 'x')
 	ax2.set_xlim(0,10)
@@ -113,9 +114,9 @@ def animate(frame):
 		return
 
 	x = usingdata['rudder'] 
-	y = -usingdata['elevator']
+	y = usingdata['elevator']
 	xt = usingdata['rudder_trim']
-	yt = -usingdata['elevator_trim']
+	yt = usingdata['elevator_trim']
 	spd = usingdata['airspeed']
 
 	

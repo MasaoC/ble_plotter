@@ -52,7 +52,7 @@ settingf = open(SETTING_FILE, "w")
 settingf.write(timestr+".csv\n")
 settingf.write(timestr+"_relay.csv\n")
 settingf.close()
-print("settings file(setting_plotter.txt) has been changed.")
+print("settings file("+SETTING_FILE+") has been changed.")
 
 
 ble = BLERadio()
