@@ -18,12 +18,14 @@
       ```
     - 受信したBLEデータのうちカンマ区切りで正しく認識できたデータのみ、機体・リレーそれぞれ分けて日時のファイル名をつけてCSV保存される。保存時には現在時刻(msまで）がデータ先頭に追加され保存される。
     - 日付付きのCSVファイル名は、setting_plotter.txt に保存され、plotter.pyで利用される。
-    - adafruit_bleのインストールが必要。
+    - pip install adafruit-circuitpython-ble が必要。
+    - pip install colorama が必要。
+    - pip install matplotlib が必要。（plotter.pyが自動実行されるため）
 - plotter.py
     - setting_plotter.txt を開き、ble.pyが保存している最新のCSVファイル２つを開く。
     - リアルタイムに更新されている上記CSVファイルのデータから、人力飛行機のラダー・エレベーター・速度計を表示する。
     - それぞれのCSVファイルの最終受信時刻を比較し、より新しい方のデータを随時グラフ表示する。どちらが利用されているかわかるように、グラフ上にDirect or Relayの表示がされる。
-    - matplotlibのインストールが必要
+    - pip install matplotlib のインストールが必要
  
 - createmovie.py
     - CSVから動画(mp4)を後から生成できる。リアルタイム録画できなかった場合でも、動画が作れる。
