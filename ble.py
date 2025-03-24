@@ -82,7 +82,11 @@ while True:
                     break
                 else:
                     if not adv.complete_name in [NAME_RELAY,NAME_OLED]:
-                        print("FOUND NORDIC UART SERVICE, but the name does not match."+NAME_RELAY+","+NAME_OLED+"<>["+adv.complete_name+"]")                    
+                        print("FOUND NORDIC UART SERVICE, but the name does not match.")
+                        if adv.complete_name is not None:
+                            print(adv.complete_name+" does not match ->"+NAME_RELAY+" or "+NAME_OLED)
+                        else:
+                            print(NAME_RELAY+","+NAME_OLED+"<>[None]")
             else:
                 if adv.complete_name:
                     print("NOT UART:" + adv.complete_name)

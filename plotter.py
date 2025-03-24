@@ -18,9 +18,22 @@ from matplotlib.animation import FuncAnimation
 import time
 from datetime import datetime
 import random
+import os.path
 
+class bcolors:
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
 
 DRAW_INTERVAL = 100 #100=10Hz
+
+
+
+if not os.path.isfile("setting_plotter.txt"):
+	print(bcolors.FAIL + bcolors.BOLD + "Warning: setting_plotter.txt not found." + bcolors.ENDC)
+	print("Check 'python ble.py' is running")
+	exit(0)
+
 
 settingf = open("setting_plotter.txt", "r")
 csvfilename = settingf.readline().rstrip('\n')

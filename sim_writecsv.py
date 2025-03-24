@@ -1,5 +1,5 @@
-#開発テスト用ファイル
-#直接、最新のCSVに仮想のデータを書き込む
+# 開発テスト用ファイル
+# Mac/PCから、Mac/PC上の最新のCSVに仮想のデータを直接書き込む。BLEを介さない。
 
 import time
 import math
@@ -33,3 +33,4 @@ for x in range(5000):
 
 	time.sleep(0.1);
 csvf.close()
+csvf_relay.close()
