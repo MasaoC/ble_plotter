@@ -3,12 +3,12 @@
     File name: ble.py
     Author: Masao Chiguchi
     Date created: 2024/05/26
-    Date last modified: 2024/5/28
+    Date last modified: 2025/3/25
     Python Version: 3.10.0 (tested on)
 
     メインの BLE 受信ファイル。グラフ起動(plotter.py実行)も行う。
     BLEとの通信を確立し、受信したデータをCSVファイルを新たに作成し保存する。
-    ファイル名は自動生成し、最新のファイル名が「setting_plotter.txt」に保存される。
+    ファイル名は自動生成し最新のファイル名が「setting_plotter.txt」に保存され、plotter.pyがそれを元にデータを開く。
 '''
 import time, sys, threading, subprocess, datetime
 
@@ -22,17 +22,25 @@ from pathlib import Path
 from colorama import Fore, Back, Style
 
 
+
 SETTING_FILE = "setting_plotter.txt"
 RAWDATAPATH = "./csv/raw.csv"
 RAWDATAPATH_RELAY = "./csv/raw_relay.csv"
+
 NAME_OLED = "ALBA TAIYO OLED v2"
 NAME_RELAY = "BLE RELAY"
+
+# 有効なデータ数　（個数不一致の場合はCSVに保存されないため、plotterにも表示されない。）
+NUM_VALID_DATA = 5
+# CSVヘッダー
+orderdata = "time,airspeed,elevator,elevator_trim,rudder,rudder_trim\n"
+
 
 Path("./csv/").mkdir(parents=True, exist_ok=True)
 #Creating new save file.
 timestr = time.strftime("csv%Y%m%d-%H%M")
 csvf = open("./csv/"+timestr+".csv", "w")
-orderdata = "time,airspeed,elevator,elevator_trim,rudder,rudder_trim\n"
+
 csvf.write(orderdata)
 csvf.flush()
 #Creating new relay save file.
@@ -112,7 +120,7 @@ while True:
         rawfile.flush()
 
         inputvalues = decoded.split(",")
-        if len(inputvalues) == 5:
+        if len(inputvalues) == NUM_VALID_DATA:
             now = datetime.datetime.now()
             csvfile.write(now.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]+","+decoded)
             csvfile.flush()
