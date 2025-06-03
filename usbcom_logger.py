@@ -89,8 +89,8 @@ def main():
 		return
 	
 	try:
-		with serial.Serial(port, 9600, timeout=3) as readSer:
-			print(f"Connected to {port} at 9600 baud.")
+		with serial.Serial(port, 38400, timeout=3) as readSer:
+			print(f"Connected to {port} at 38400 baud.")
 
 			# デバッグ用スレッド
 			#debug_sendcomdata_thread = threading.Thread(target=debug_sendserialdata, args=(readSer,))
