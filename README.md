@@ -1,7 +1,10 @@
 # ble_plotter
 
-人力飛行機（ダイダロス機）の試験飛行において、機体からBLEで送られたデータをリアルタイムにグラフ表示する。
-受信したBLEデータはCSV保存も同時に行う。Macの標準のBluetoothで受信することができる。
+人力飛行機（ダイダロス機）の試験飛行において、機体から送られたデータをPC/Macリアルタイムにグラフ表示する。
+- MacやWindowsの標準のBluetooth(BLE)で無線で受信が可能
+- PC/MacではBLEを使わず、XIAO ESP32C3(RELAY端末)をPC/MacにUSBポートに繋ぐことも可能
+  
+受信したBLEデータ又はUSB-COMで受信したデータはCSV保存され、matplotlib(plotter.py)を使って可視化される。
 
 ![無線ロガー電装システム図](https://github.com/MasaoC/ble_plotter/assets/6983713/99f55044-6ccb-4f4f-a903-ae3f5c878cd6)
 
